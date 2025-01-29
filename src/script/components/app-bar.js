@@ -91,11 +91,12 @@ class AppBar extends HTMLElement {
     this._shadowRoot.appendChild(this._style);
     this._shadowRoot.innerHTML += `
       <div>
-        <img src="../src/public/icon-notes.png" alt="Logo" class="logo">  <!-- Pastikan path logo benar -->
         <h1 class="brand-name">Notes App</h1>
       </div>
     `;
   }
 }
+
+{/* <img src="../src/public/icon-notes.png" alt="Logo" class="logo">  <!-- Pastikan path logo benar --> */}
 
 customElements.define('app-bar', AppBar);

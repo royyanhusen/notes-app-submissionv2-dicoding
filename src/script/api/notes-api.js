@@ -1,4 +1,3 @@
-// notes-api.js
 class NotesApi {
   constructor() {
     this.baseUrl = 'https://notes-api.dicoding.dev/v2'; // Base URL di dalam kelas
@@ -30,6 +29,13 @@ class NotesApi {
         },
         body: JSON.stringify(note),
       });
+
+      if (!response.ok) {
+        const errorDetails = await response.json(); // Ambil detail kesalahan dari respons
+        console.error('Error response from server:', errorDetails);
+        throw new Error(`API Error: ${errorDetails.message || 'Unknown error'}`);
+      }
+
       const responseJson = await response.json();
       return responseJson; // Kembalikan hasil dari API
     } catch (error) {
@@ -37,6 +43,7 @@ class NotesApi {
       throw error;
     }
   }
+
 
   // Method untuk mengupdate catatan
   async updateNote(note) {
