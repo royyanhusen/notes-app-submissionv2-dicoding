@@ -1,142 +1,205 @@
+import Swal from 'sweetalert2';  // Impor SweetAlert2
+import NotesApi from '../api/notes-api.js';  // Pastikan ini sudah diimpor dengan benar
+
 class NoteItem extends HTMLElement {
-    _shadowRoot = null;
-    _style = null;
-    _note = {
-      id: null,
-      title: null,
-      body: null,
-      createdAt: null,
-      archived: null,
-    };
-  
-    constructor() {
-      super();
-      this._shadowRoot = this.attachShadow({ mode: 'open' });
-      this._style = document.createElement('style');
-    }
-  
-    _emptyContent() {
-      this._shadowRoot.innerHTML = '';
-    }
-  
-    set note(value) {
-      this._note = value;
-      // Re-render when the note is set
-      this.render();
-    }
-  
-    get note() {
-      return this._note;
-    }
-  
-    _updateStyle() {
-      this._style.textContent = `
-        :host {
-          display: block;
-          border-radius: 8px;
-          box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
-          overflow: hidden;
-          margin-bottom: 16px;
-        }
-  
+  _shadowRoot = null;
+  _style = null;
+  _note = {
+    id: null,
+    title: null,
+    body: null,
+    createdAt: null,
+    archived: null,
+  };
+
+  constructor() {
+    super();
+    this._shadowRoot = this.attachShadow({ mode: 'open' });
+    this._style = document.createElement('style');
+  }
+
+  _emptyContent() {
+    this._shadowRoot.innerHTML = '';
+  }
+
+  set note(value) {
+    this._note = value;
+    this.render();
+  }
+
+  get note() {
+    return this._note;
+  }
+
+  _updateStyle() {
+    this._style.textContent = `
+      :host {
+        display: block;
+        border-radius: 8px;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        margin-bottom: 16px;
+      }
+
+      .note-item {
+        background-color: #fff;
+        padding: 16px;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.3s ease;
+        cursor: pointer;
+        min-height: 200px;
+      }
+
+      .note-item h3 {
+        margin: 0;
+        font-size: 1.4em;
+        font-weight: bold;
+      }
+
+      .note-item p {
+        margin: 8px 0;
+        font-size: 1em;
+        line-height: 1.6;
+        flex-grow: 1;
+      }
+
+      .note-item small {
+        font-size: 0.9em;
+        color: #666;
+      }
+
+      .note-item .status {
+        font-weight: bold;
+        margin-top: 4px;
+        color: ${this._note.archived ? 'red' : 'green'};
+      }
+
+      .note-item .button-container {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        width: 100%;
+        border-top: 1px solid #ddd;
+        padding-top: 10px;
+      }
+
+      .note-item .button-container button {
+        padding: 12px;
+        font-size: 1em;
+        cursor: pointer;
+        border: none;
+        border-radius: 5px;
+        flex-grow: 1;
+      }
+
+      button:hover {
+        background-color: #ddd;
+      }
+
+      .archive-button {
+        background-color: ${this._note.archived ? 'gray' : '#4CAF50'};
+        color: white;
+      }
+
+      .delete-button {
+        background-color: red;
+        color: white;
+      }
+
+      @media (max-width: 600px) {
         .note-item {
-          background-color: #fff;
-          padding: 16px;
-          border-radius: 8px;
-          display: flex;
-          flex-direction: column;
-          transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
-          cursor: pointer; /* Menambahkan cursor pointer untuk menandakan bahwa elemen bisa diklik */
-          min-height: 200px; /* Menetapkan tinggi minimum untuk card */
+          padding: 12px;
         }
-  
-        .note-item h3 {
-          margin: 0;
-          font-size: 1.4em;
-          font-weight: bold;
-        }
-  
-        .note-item p {
-          margin: 8px 0;
-          font-size: 1em;
-          line-height: 1.6;
-          flex-grow: 1; /* Agar paragraf bisa memanfaatkan ruang yang ada */
-        }
-  
-        .note-item small {
+
+        .button-container button {
           font-size: 0.9em;
-          color: #666;
         }
-  
-        .note-item .status {
-          font-weight: bold;
-          margin-top: 4px; /* Mengurangi margin atas agar lebih rapat */
-          color: ${this._note.archived ? 'red' : 'green'};
-        }
-  
-        /* Efek hover untuk seluruh card */
-        .note-item:hover {
-          transform: scale(1.05); /* Membesarkan item sedikit */
-          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Menambah bayangan lebih gelap */
-          background-color: #f4f6f9; /* Ganti warna latar belakang saat hover */
-        }
-  
-        /* Responsif untuk layar kecil */
-        @media (max-width: 600px) {
-          .note-item {
-            padding: 12px; /* Mengurangi padding pada perangkat kecil */
-          }
-  
-          .note-item h3 {
-            font-size: 1.2em; /* Mengurangi ukuran judul pada perangkat kecil */
-          }
-  
-          .note-item p {
-            font-size: 0.9em; /* Mengurangi ukuran teks body pada perangkat kecil */
-          }
-  
-          .note-item small {
-            font-size: 0.8em; /* Mengurangi ukuran teks kecil pada perangkat kecil */
-          }
-  
-          .note-item .status {
-            font-size: 0.9em; /* Mengurangi ukuran status pada perangkat kecil */
-          }
-        }
-  
-        /* Responsif untuk tablet (antara 600px hingga 900px) */
-        @media (max-width: 900px) {
-          .note-item h3 {
-            font-size: 1.3em; /* Menyesuaikan ukuran judul di tablet */
-          }
-  
-          .note-item p {
-            font-size: 1em; /* Menyesuaikan ukuran teks body di tablet */
-          }
-        }
-      `;
-    }
-  
-    render() {
-      this._emptyContent();
-      this._updateStyle();
-      
-      this._shadowRoot.innerHTML = '';
-      this.innerHTML = `<div class="note-list-container"></div>`;
+      }
+    `;
+  }
 
+  render() {
+    this._emptyContent();
+    this._updateStyle();
 
-      this._shadowRoot.appendChild(this._style);
-      this._shadowRoot.innerHTML += `
-        <div class="note-item">
-          <h3>${this._note.title}</h3>
-          <p>${this._note.body}</p>
-          <small>Created at: ${new Date(this._note.createdAt).toLocaleString()}</small>
-          <div class="status">${this._note.archived ? 'Archived' : 'Active'}</div>
+    this._shadowRoot.innerHTML = '';
+    this._shadowRoot.appendChild(this._style);
+
+    this._shadowRoot.innerHTML += `
+      <div class="note-item">
+        <h3>${this._note.title}</h3>
+        <p>${this._note.body}</p>
+        <small>Created at: ${new Date(this._note.createdAt).toLocaleString()}</small>
+        
+        <div class="status">${this._note.archived ? 'Archived' : 'Active'}</div>
+
+        <div class="button-container">
+          <button class="archive-button">${this._note.archived ? 'Unarchive' : 'Archive'}</button>
+          <button class="delete-button">Delete</button>
         </div>
-      `;
+      </div>
+    `;
+
+    const archiveButton = this._shadowRoot.querySelector('.archive-button');
+    archiveButton.addEventListener('click', () => this.toggleArchive());
+
+    const deleteButton = this._shadowRoot.querySelector('.delete-button');
+    deleteButton.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await this.deleteNote();
+    });
+  }
+
+  async toggleArchive() {
+    try {
+      const api = new NotesApi();
+      if (this._note.archived) {
+        await api.unarchiveNote(this._note.id);
+        this._note.archived = false;
+      } else {
+        await api.archiveNote(this._note.id);
+        this._note.archived = true;
+      }
+      this.render();
+    } catch (error) {
+      console.error('Error toggling archive status:', error);
+      // Gunakan SweetAlert2 untuk menampilkan pesan error
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Error toggling archive status.',
+        showConfirmButton: true
+      });
     }
   }
-  
-  // Defining the 'note-item' custom element
-  customElements.define('note-item', NoteItem);
-  
+
+  async deleteNote() {
+    try {
+      const api = new NotesApi(); // Pastikan NotesApi sudah diimpor dengan benar
+      await api.deleteNote(this._note.id);  // Menghapus catatan melalui API
+      this.remove();  // Menghapus elemen dari DOM setelah sukses
+
+      // Gunakan SweetAlert2 untuk menampilkan pesan sukses
+      Swal.fire({
+        icon: 'success',
+        title: 'Deleted!',
+        text: 'Your note has been deleted successfully.',
+        showConfirmButton: false,
+        timer: 1500
+      });
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      // Gunakan SweetAlert2 untuk menampilkan pesan error
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'There was an error deleting your note.',
+        showConfirmButton: true
+      });
+    }
+  }
+}
+
+customElements.define('note-item', NoteItem);
