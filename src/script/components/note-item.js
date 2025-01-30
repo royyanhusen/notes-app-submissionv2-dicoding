@@ -1,5 +1,5 @@
-import Swal from 'sweetalert2';  // Impor SweetAlert2
-import NotesApi from '../api/notes-api.js';  // Pastikan ini sudah diimpor dengan benar
+import Swal from 'sweetalert2';
+import NotesApi from '../api/notes-api.js';
 
 class NoteItem extends HTMLElement {
   _shadowRoot = null;
@@ -108,6 +108,11 @@ class NoteItem extends HTMLElement {
         color: white;
       }
 
+      .detail-button {
+        background-color: #007BFF;
+        color: white;
+      }
+
       @media (max-width: 600px) {
         .note-item {
           padding: 12px;
@@ -132,11 +137,12 @@ class NoteItem extends HTMLElement {
         <h3>${this._note.title}</h3>
         <p>${this._note.body}</p>
         <small>Created at: ${new Date(this._note.createdAt).toLocaleString()}</small>
-        
+
         <div class="status">${this._note.archived ? 'Archived' : 'Active'}</div>
 
         <div class="button-container">
           <button class="archive-button">${this._note.archived ? 'Unarchive' : 'Archive'}</button>
+          <button class="detail-button">Details</button>
           <button class="delete-button">Delete</button>
         </div>
       </div>
@@ -150,56 +156,124 @@ class NoteItem extends HTMLElement {
       e.stopPropagation();
       await this.deleteNote();
     });
+
+    const detailButton = this._shadowRoot.querySelector('.detail-button');
+    detailButton.addEventListener('click', () => this.showDetails());
   }
 
   async toggleArchive() {
     try {
       const api = new NotesApi();
       if (this._note.archived) {
-        await api.unarchiveNote(this._note.id);
+        await api.unarchiveNote(this._note.id); // Unarchive note via API
         this._note.archived = false;
       } else {
-        await api.archiveNote(this._note.id);
+        await api.archiveNote(this._note.id); // Archive note via API
         this._note.archived = true;
       }
+
+      // Re-render dengan status yang diperbarui
       this.render();
+
+      // Menampilkan SweetAlert dalam mode Toast (notifikasi singkat)
+      Swal.fire({
+        icon: 'success',
+        title: this._note.archived ? 'Archived' : 'Unarchived',
+        text: this._note.archived ? 'Note has been archived.' : 'Note has been unarchived.',
+        toast: true,
+        position: 'top-end',  // Menempatkan toast di bagian kanan atas
+        showConfirmButton: false,
+        timer: 1500,
+      });
     } catch (error) {
       console.error('Error toggling archive status:', error);
-      // Gunakan SweetAlert2 untuk menampilkan pesan error
       Swal.fire({
         icon: 'error',
         title: 'Oops...',
         text: 'Error toggling archive status.',
-        showConfirmButton: true
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 1500,
       });
     }
   }
 
   async deleteNote() {
     try {
-      const api = new NotesApi(); // Pastikan NotesApi sudah diimpor dengan benar
-      await api.deleteNote(this._note.id);  // Menghapus catatan melalui API
-      this.remove();  // Menghapus elemen dari DOM setelah sukses
-
-      // Gunakan SweetAlert2 untuk menampilkan pesan sukses
-      Swal.fire({
-        icon: 'success',
-        title: 'Deleted!',
-        text: 'Your note has been deleted successfully.',
-        showConfirmButton: false,
-        timer: 1500
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, cancel!',
+        reverseButtons: true,
       });
+
+      if (result.isConfirmed) {
+        const api = new NotesApi();
+        await api.deleteNote(this._note.id); // Call the API to delete the note
+        this.remove();
+
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Your note has been deleted.',
+          icon: 'success',
+          confirmButtonText: 'OK',
+        });
+      } else if (result.dismiss === Swal.DismissReason.cancel) {
+        Swal.fire({
+          title: 'Cancelled',
+          text: 'Your note is safe :)',
+          icon: 'info',
+          confirmButtonText: 'OK',
+        });
+      }
     } catch (error) {
       console.error('Error deleting note:', error);
-      // Gunakan SweetAlert2 untuk menampilkan pesan error
       Swal.fire({
         icon: 'error',
         title: 'Oops...',
         text: 'There was an error deleting your note.',
-        showConfirmButton: true
+        showConfirmButton: true,
       });
     }
   }
+
+  async showDetails() {
+    try {
+      const api = new NotesApi();
+      const noteDetail = await api.getSingleNote(this._note.id); // Mengambil detail catatan berdasarkan ID
+
+      // Menampilkan detail catatan menggunakan Swal dengan styling
+      Swal.fire({
+        title: `<strong style="font-size: 1.2em;">${noteDetail.title}</strong>`,
+        html: `
+          <div style="font-size: 1em; line-height: 1.6; text-align: left; margin-bottom: 15px;">
+            <p><strong>Body:</strong></p>
+            <p style="white-space: pre-wrap; word-wrap: break-word; font-size: 1em;">${noteDetail.body}</p>
+            <p><strong>Created At:</strong> ${new Date(noteDetail.createdAt).toLocaleString()}</p>
+            <p><strong>Status:</strong> ${noteDetail.archived ? 'Archived' : 'Active'}</p>
+          </div>
+        `,
+        icon: 'info',
+        confirmButtonText: 'OK',
+        customClass: {
+          popup: 'swal-popup-details',
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching single note details:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Oops...',
+        text: 'Error fetching note details.',
+        showConfirmButton: true,
+      });
+    }
+  }
+
 }
 
 customElements.define('note-item', NoteItem);

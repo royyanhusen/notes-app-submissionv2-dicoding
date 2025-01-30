@@ -1,154 +1,167 @@
 import Utils from '../utils.js';
-import NotesApi from '../api/notes-api.js'; // Mengimpor NotesApi yang sudah didefinisikan sebelumnya
+import NotesApi from '../api/notes-api.js';
 
 const home = () => {
   const noteListContainerElement = document.querySelector('#noteListContainer');
+  const noteLoadingElement = noteListContainerElement.querySelector('.loading');  // Loading hanya untuk daftar catatan
   const noteListElement = noteListContainerElement.querySelector('note-list');
   const addFormElement = document.querySelector('add-form');
 
-  // Membuat instance dari NotesApi
+  // Declaring the noteDetailElement for displaying a single note
+  const noteDetailElement = document.querySelector('#noteDetailElement');
+
+  // Create instance of NotesApi
   const api = new NotesApi();
 
-  // Fungsi untuk menampilkan catatan dari API
+  // Function to fetch both active and archived notes from the API
   const showNotes = async () => {
     try {
-      // Mengambil catatan dari API
-      const apiNotes = await api.getNotes();
-      console.log('Notes from API:', apiNotes); // Debugging: log data dari API
+      showLoading();  // Menampilkan indikator loading
 
-      displayResult(apiNotes); // Menampilkan hasil setelah mengambil data dari API
-      showNoteList(); // Menampilkan list catatan di UI
+      // Fetch active notes
+      const apiNotes = await api.getNotes();
+      console.log('Active Notes from API:', apiNotes);
+
+      // Fetch archived notes
+      const archivedNotes = await api.getArchivedNotes();
+      console.log('Archived Notes from API:', archivedNotes);
+
+      // Combine both active and archived notes
+      const combinedNotes = [...apiNotes, ...archivedNotes];
+
+      // Display the combined notes
+      displayResult(combinedNotes);
+
+      // Pastikan daftar catatan muncul setelah data diambil
+      showNoteList();
+
     } catch (error) {
-      console.log('Error fetching notes from API:', error); // Log error jika terjadi masalah saat fetching dari API
-      Utils.showElement(noteListElement); // Menampilkan list meskipun gagal mengambil dari API
+      console.log('Error fetching notes from API:', error);
+      Utils.showElement(noteListElement); // Menampilkan daftar catatan meski terjadi error
+    } finally {
+      hideLoading(); // Menyembunyikan indikator loading setelah permintaan selesai
     }
   };
 
-  // Fungsi untuk menampilkan hasil catatan ke UI
+  // Menampilkan indikator loading
+  const showLoading = () => {
+    Utils.hideElement(noteListElement); // Sembunyikan daftar catatan selama loading
+    Utils.showElement(noteLoadingElement); // Tampilkan loading di bawah daftar catatan
+  };
+
+  // Menyembunyikan indikator loading
+  const hideLoading = () => {
+    Utils.hideElement(noteLoadingElement); // Sembunyikan indikator loading
+    Utils.showElement(noteListElement); // Tampilkan daftar catatan
+  };
+
+  // Fungsi untuk menampilkan daftar catatan di UI
   const displayResult = (notes) => {
-    // Urutkan notes berdasarkan createdAt agar data terbaru tampil di atas
+    // Mengurutkan catatan berdasarkan tanggal pembuatan
     notes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  
-    // Map setiap catatan menjadi elemen <note-item>
+
+    // Membuat elemen <note-item> untuk setiap catatan
     const noteItemElements = notes.map((note) => {
       const noteItemElement = document.createElement('note-item');
-      noteItemElement.note = note; // Set setiap note item
-      noteItemElement.addEventListener('click', () => showSingleNote(note.id)); // Menambahkan listener untuk klik catatan
-  
+      noteItemElement.note = note; // Menetapkan setiap catatan
+      noteItemElement.addEventListener('click', () => showSingleNote(note.id)); // Tampilkan catatan tunggal saat diklik
+
       // Menambahkan tombol Archive
       const archiveButton = document.createElement('button');
-      archiveButton.textContent = 'Archive';
+      archiveButton.textContent = note.archived ? 'Unarchive' : 'Archive';
       archiveButton.addEventListener('click', (e) => {
-        e.stopPropagation(); // Menghindari event click pada item note
-        archiveNote(note.id); // Mengarsipkan catatan
+        e.stopPropagation(); // Mencegah event bubbling
+        toggleArchive(note.id, note.archived); // Toggle status arsip
       });
-      noteItemElement.appendChild(archiveButton); // Menambahkan tombol Archive ke dalam note item
-  
-      // Menambahkan event listener untuk penghapusan catatan
-      noteItemElement.addEventListener('delete-note', () => handleDeleteNote(note));
-  
+      noteItemElement.appendChild(archiveButton); // Menambahkan tombol Archive
+
+      // Menambahkan tombol Delete
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleDeleteNote(note); // Menangani penghapusan catatan
+      });
+      noteItemElement.appendChild(deleteButton); // Menambahkan tombol Delete
+
       return noteItemElement;
     });
-    noteListElement.innerHTML = ''; // Bersihkan catatan yang ada di dalam list
-    noteListElement.append(...noteItemElements); // Tambahkan catatan baru ke dalam list
-  };
-  
 
-  // Fungsi untuk menampilkan list catatan
+    // Mengosongkan daftar yang ada dan menambahkan catatan baru
+    noteListElement.innerHTML = '';
+    noteListElement.append(...noteItemElements);
+  };
+
+  // Menampilkan daftar catatan
   const showNoteList = () => {
-    // Tampilkan catatan setelah proses fetching selesai
     Utils.showElement(noteListElement);
   };
 
-  // Fungsi untuk menangani event saat catatan baru ditambahkan
+  // Menangani penambahan catatan baru
   const handleNewNote = async (event) => {
-    const newNote = event.detail; // Mengambil detail catatan baru dari event
-    console.log('New note to be added:', newNote); // Debugging: log catatan baru yang akan ditambahkan
+    const newNote = event.detail; // Mendapatkan detail catatan baru dari event
+    console.log('New note to be added:', newNote);
 
-    // Menambahkan catatan baru ke API
-    await api.createNote(newNote); // Memanggil metode createNote dari NotesApi untuk menyimpan ke API
-    console.log('New note added to API:', newNote); // Debugging: log catatan yang ditambahkan ke API
+    // Membuat catatan baru melalui API
+    await api.createNote(newNote);
+    console.log('New note added to API:', newNote);
 
-    // Setelah catatan baru ditambahkan ke API, tampilkan catatan terbaru
-    showNotes(); // Menampilkan kembali daftar catatan yang telah diperbarui
+    // Memperbarui daftar catatan setelah penambahan
+    showNotes(); // Tidak perlu menampilkan loading di sini
   };
 
-  // Menambahkan event listener untuk menangani event 'note-added' dari AddForm
+  // Event listener untuk menambahkan catatan baru
   addFormElement.addEventListener('note-added', handleNewNote);
 
-  // Fungsi untuk menampilkan catatan yang diarsipkan
-  const showArchivedNotes = async () => {
-    try {
-      // Mengambil catatan yang diarsipkan dari API
-      const archivedNotes = await api.getArchivedNotes();
-      console.log('Archived Notes:', archivedNotes); // Debugging: log catatan yang diarsipkan
-
-      displayResult(archivedNotes); // Menampilkan catatan yang diarsipkan ke UI
-      showNoteList(); // Menampilkan list catatan di UI
-    } catch (error) {
-      console.log('Error fetching archived notes from API:', error); // Log error jika terjadi masalah saat fetching
-      Utils.showElement(noteListElement); // Menampilkan list meskipun gagal mengambil dari API
-    }
-  };
-
-  // Fungsi untuk menampilkan catatan tunggal berdasarkan ID
+  // Menampilkan detail dari catatan tunggal
   const showSingleNote = async (noteId) => {
     try {
-      // Mengambil catatan tunggal dari API
       const singleNote = await api.getSingleNote(noteId);
-      console.log('Single Note:', singleNote); // Debugging: log catatan tunggal
+      console.log('Single Note:', singleNote);
 
-      // Menampilkan catatan tunggal pada UI
+      // Menampilkan detail catatan di UI
       noteDetailElement.innerHTML = `
-          <h2>${singleNote.title}</h2>
-          <p>${singleNote.body}</p>
-          <p><strong>Created At:</strong> ${singleNote.createdAt}</p>
-          <p><strong>Archived:</strong> ${singleNote.archived ? 'Yes' : 'No'}</p>
-        `;
-
-      Utils.showElement(noteDetailElement); // Menampilkan detail catatan
+        <h2>${singleNote.title}</h2>
+        <p>${singleNote.body}</p>
+        <p><strong>Created At:</strong> ${new Date(singleNote.createdAt).toLocaleString()}</p>
+        <p><strong>Archived:</strong> ${singleNote.archived ? 'Yes' : 'No'}</p>
+      `;
+      Utils.showElement(noteDetailElement); // Menampilkan elemen detail catatan
     } catch (error) {
-      console.log('Error fetching single note from API:', error); // Log error jika terjadi masalah saat fetching
+      console.log('Error fetching single note from API:', error);
     }
   };
 
-  // Fungsi untuk mengarsipkan catatan
-  const archiveNote = async (noteId) => {
+  // Mengubah status arsip dari catatan
+  const toggleArchive = async (noteId, isArchived) => {
     try {
-      // Mengarsipkan catatan melalui API
-      await api.archiveNote(noteId);
-      console.log('Note archived successfully'); // Debugging: log setelah catatan berhasil diarsipkan
-
-      // Setelah mengarsipkan, tampilkan daftar catatan yang telah diperbarui
+      if (isArchived) {
+        await api.unarchiveNote(noteId); // Unarchive catatan
+        console.log('Note unarchived successfully');
+      } else {
+        await api.archiveNote(noteId); // Archive catatan
+        console.log('Note archived successfully');
+      }
+      // Memperbarui daftar catatan setelah mengubah status arsip
       showNotes();
     } catch (error) {
-      console.log('Error archiving note:', error); // Log error jika gagal mengarsipkan
+      console.log('Error toggling archive state:', error);
     }
   };
 
-    // Fungsi untuk menangani penghapusan catatan
-    const handleDeleteNote = async (note) => {
-      try {
-        // Menghapus catatan dari API
-        await api.deleteNote(note.id);
-        console.log('Note deleted from API:', note.id); // Debugging: log catatan yang dihapus
-    
-        // Menampilkan daftar catatan yang telah diperbarui setelah penghapusan
-        showNotes();
-      } catch (error) {
-        console.log('Error deleting note from API:', error);
-      }
-    };
-    
+  // Menangani penghapusan catatan
+  const handleDeleteNote = async (note) => {
+    try {
+      await api.deleteNote(note.id); // Menghapus catatan dari API
+      console.log('Note deleted from API:', note.id);
 
+      // Memperbarui daftar catatan setelah penghapusan
+      showNotes();
+    } catch (error) {
+      console.log('Error deleting note from API:', error);
+    }
+  };
 
-  // Menambahkan event listener untuk tombol "Show Archived Notes"
-  const showArchivedButton = document.querySelector('#showArchivedButton');
-  if (showArchivedButton) {
-    showArchivedButton.addEventListener('click', showArchivedNotes); // Menampilkan catatan yang diarsipkan saat tombol diklik
-  }
-
-  // Menampilkan daftar catatan saat halaman dimuat
   showNotes();
 };
 

@@ -3,90 +3,8 @@ class NotesApi {
     this.baseUrl = 'https://notes-api.dicoding.dev/v2'; // Base URL di dalam kelas
   }
 
-  // Method untuk Get notes non archived
-  async getNotes() {
-    try {
-      const response = await fetch(`${this.baseUrl}/notes`);
-      const responseJson = await response.json();
-      console.log('Response from API:', responseJson); // Log untuk debugging
-      if (responseJson.error) {
-        throw new Error(responseJson.message);
-      }
-      return responseJson.data; // Kembalikan data catatan dari API
-    } catch (error) {
-      console.error('Error fetching notes:', error); // Log error jika terjadi masalah saat fetching dari API
-      throw error; // Meneruskan error
-    }
-  }
 
-  // Method untuk Get archived notes
-  async getArchivedNotes() {
-    try {
-      const response = await fetch(`${this.baseUrl}/notes/archived`);
-      const responseJson = await response.json();
-      console.log('Archived Notes from API:', responseJson); // Log untuk debugging
-      if (responseJson.error) {
-        throw new Error(responseJson.message);
-      }
-      return responseJson.data; // Kembalikan data catatan yang diarsipkan
-    } catch (error) {
-      console.error('Error fetching archived notes:', error); // Log error jika terjadi masalah saat fetching dari API
-      throw error; // Meneruskan error
-    }
-  }
-
-  //  Method untuk Get single note
-  async getSingleNote(note_id) {
-    try {
-      const response = await fetch(`${this.baseUrl}/notes/${note_id}`);
-      const responseJson = await response.json();
-      if (responseJson.error) {
-        throw new Error(responseJson.message);
-      }
-      return responseJson.data; // Mengembalikan data catatan tunggal
-    } catch (error) {
-      console.error('Error fetching single note:', error);
-      throw error;
-    }
-  }
-
-  // Method untuk archived note
-  async archiveNote(note_id) {
-    try {
-      const response = await fetch(`${this.baseUrl}/notes/${note_id}/archive`, {
-        method: 'POST',
-      });
-      const responseJson = await response.json();
-      if (responseJson.error) {
-        throw new Error(responseJson.message);
-      }
-      return responseJson; // Kembalikan hasil setelah berhasil mengarsipkan
-    } catch (error) {
-      console.error('Error archiving note:', error);
-      throw error;
-    }
-  }
-
-
-  // Method untuk unarchived note
-  async archiveNote(note_id) {
-    try {
-      const response = await fetch(`${this.baseUrl}/notes/${note_id}/unarchive`, {
-        method: 'POST',
-      });
-      const responseJson = await response.json();
-      if (responseJson.error) {
-        throw new Error(responseJson.message);
-      }
-      return responseJson; // Kembalikan hasil setelah berhasil mengarsipkan
-    } catch (error) {
-      console.error('Error archiving note:', error);
-      throw error;
-    }
-  }
-
-
-  // Method untuk membuat catatan baru
+  // Method POST membuat catatan baru
   async createNote(note) {
     try {
       const response = await fetch(`${this.baseUrl}/notes`, {
@@ -111,21 +29,83 @@ class NotesApi {
     }
   }
 
-
-  // Method untuk mengupdate catatan
-  async updateNote(note) {
+  // Method GET notes non-archived
+  async getNotes() {
     try {
-      const response = await fetch(`${this.baseUrl}/notes/${note.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(note),
+      const response = await fetch(`${this.baseUrl}/notes`);
+      const responseJson = await response.json();
+      console.log('Response from API:', responseJson); // Log untuk debugging
+      if (responseJson.error) {
+        throw new Error(responseJson.message);
+      }
+      return responseJson.data; // Kembalikan data catatan dari API
+    } catch (error) {
+      console.error('Error fetching notes:', error); // Log error jika terjadi masalah saat fetching dari API
+      throw error; // Meneruskan error
+    }
+  }
+
+  // Method GET archived notes
+  async getArchivedNotes() {
+    try {
+      const response = await fetch(`${this.baseUrl}/notes/archived`);
+      const responseJson = await response.json();
+      console.log('Archived Notes from API:', responseJson); // Log untuk debugging
+      if (responseJson.error) {
+        throw new Error(responseJson.message);
+      }
+      return responseJson.data; // Kembalikan data catatan yang diarsipkan
+    } catch (error) {
+      console.error('Error fetching archived notes:', error); // Log error jika terjadi masalah saat fetching dari API
+      throw error; // Meneruskan error
+    }
+  }
+
+  //  Method GET single note
+  async getSingleNote(note_id) {
+    try {
+      const response = await fetch(`${this.baseUrl}/notes/${note_id}`);
+      const responseJson = await response.json();
+      if (responseJson.error) {
+        throw new Error(responseJson.message);
+      }
+      return responseJson.data; // Mengembalikan data catatan tunggal
+    } catch (error) {
+      console.error('Error fetching single note:', error);
+      throw error;
+    }
+  }
+
+  // Method POST untuk archived note
+  async archiveNote(note_id) {
+    try {
+      const response = await fetch(`${this.baseUrl}/notes/${note_id}/archive`, {
+        method: 'POST',
       });
       const responseJson = await response.json();
-      return responseJson; // Kembalikan hasil dari API
+      if (responseJson.error) {
+        throw new Error(responseJson.message);
+      }
+      return responseJson; // Kembalikan hasil setelah berhasil mengarsipkan
     } catch (error) {
-      console.error('Error updating note:', error);
+      console.error('Error archiving note:', error);
+      throw error;
+    }
+  }
+
+  // Method POST untuk unarchived note
+  async unarchiveNote(note_id) {
+    try {
+      const response = await fetch(`${this.baseUrl}/notes/${note_id}/unarchive`, {
+        method: 'POST',
+      });
+      const responseJson = await response.json();
+      if (responseJson.error) {
+        throw new Error(responseJson.message);
+      }
+      return responseJson; // Kembalikan hasil setelah berhasil mengarsipkan
+    } catch (error) {
+      console.error('Error archiving note:', error);
       throw error;
     }
   }

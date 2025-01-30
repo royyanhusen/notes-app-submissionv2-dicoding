@@ -1,3 +1,4 @@
+import Swal from 'sweetalert2';
 
 class AddForm extends HTMLElement {
   constructor() {
@@ -52,8 +53,8 @@ class AddForm extends HTMLElement {
       }
   
       textarea {
-        height: 100px; /* Menambah tinggi textarea */
-        resize: vertical; /* Membuat textarea bisa diubah ukurannya secara vertikal */
+        height: 100px;
+        resize: vertical;
       }
   
       input:focus, textarea:focus {
@@ -101,7 +102,6 @@ class AddForm extends HTMLElement {
         cursor: not-allowed;
       }
   
-      /* Responsif untuk layar kecil */
       @media (max-width: 600px) {
         :host {
           margin: 15px;
@@ -118,21 +118,18 @@ class AddForm extends HTMLElement {
         }
       }
   
-      /* Responsif untuk layar medium (tablet) */
       @media (min-width: 601px) and (max-width: 900px) {
         form {
           width: 80%;
         }
       }
   
-      /* Responsif untuk layar besar */
       @media (min-width: 901px) {
         form {
           width: 60%;
         }
       }
     `;
-
     this._shadowRoot.appendChild(this._style);
     this._shadowRoot.innerHTML += `
       <form id="addNoteForm">
@@ -190,6 +187,15 @@ class AddForm extends HTMLElement {
       // Mengosongkan input setelah submit
       this._shadowRoot.querySelector('#title').value = '';
       this._shadowRoot.querySelector('#body').value = '';
+
+      // Menampilkan SweetAlert2 saat data berhasil disimpan tanpa tombol OK
+      Swal.fire({
+        icon: 'success',
+        title: 'Note Added!',
+        text: 'Your note has been successfully added.',
+        showConfirmButton: false,  // Menyembunyikan tombol OK
+        timer: 2000,  // Alert akan hilang setelah 2 detik
+      });
     } else {
       console.log('Form is invalid.');
     }
@@ -199,7 +205,6 @@ class AddForm extends HTMLElement {
     const titleError = this._shadowRoot.querySelector('#titleError');
     const value = input.value;
 
-    // Validasi karakter minimal 3 dan tidak boleh angka
     if (value.length < 3) {
       titleError.textContent = 'Title must be at least 3 characters';
       input.classList.add('invalid');
