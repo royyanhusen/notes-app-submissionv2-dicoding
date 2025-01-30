@@ -1,4 +1,4 @@
-import Utils from '../utils.js';
+import Utils from "../utils.js";
 
 class NoteList extends HTMLElement {
   _shadowRoot = null;
@@ -8,13 +8,13 @@ class NoteList extends HTMLElement {
   _gutter = 16; // Default gutter antara item
 
   static get observedAttributes() {
-    return ['column', 'gutter'];
+    return ["column", "gutter"];
   }
 
   constructor() {
     super();
-    this._shadowRoot = this.attachShadow({ mode: 'open' });
-    this._style = document.createElement('style');
+    this._shadowRoot = this.attachShadow({ mode: "open" });
+    this._style = document.createElement("style");
     this.render();
   }
 
@@ -96,7 +96,7 @@ class NoteList extends HTMLElement {
   }
 
   _emptyContent() {
-    this._shadowRoot.innerHTML = '';
+    this._shadowRoot.innerHTML = "";
   }
 
   render() {
@@ -113,14 +113,14 @@ class NoteList extends HTMLElement {
 
   attributeChangedCallback(name, oldValue, newValue) {
     switch (name) {
-      case 'column':
+      case "column":
         this.column = newValue;
         break;
-      case 'gutter':
+      case "gutter":
         this.gutter = newValue;
         break;
     }
   }
 }
 
-customElements.define('note-list', NoteList);
+customElements.define("note-list", NoteList);

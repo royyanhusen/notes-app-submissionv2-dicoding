@@ -1,15 +1,17 @@
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
+import anime from "animejs/lib/anime.es.js";
 
 class AddForm extends HTMLElement {
   constructor() {
     super();
-    this._shadowRoot = this.attachShadow({ mode: 'open' });
-    this._style = document.createElement('style');
+    this._shadowRoot = this.attachShadow({ mode: "open" });
+    this._style = document.createElement("style");
   }
 
   connectedCallback() {
     this._render();
     this._setupEventListeners();
+    this._animateFormElements(); // Menambahkan animasi elemen form
   }
 
   _render() {
@@ -101,7 +103,7 @@ class AddForm extends HTMLElement {
         background-color: #bbb;
         cursor: not-allowed;
       }
-  
+
       @media (max-width: 600px) {
         :host {
           margin: 15px;
@@ -147,110 +149,142 @@ class AddForm extends HTMLElement {
   }
 
   _setupEventListeners() {
-    const form = this._shadowRoot.querySelector('#addNoteForm');
-    form.addEventListener('submit', (event) => this._handleSubmit(event));
+    const form = this._shadowRoot.querySelector("#addNoteForm");
+    form.addEventListener("submit", (event) => this._handleSubmit(event));
 
-    // Add real-time validation for title and body
-    const titleInput = this._shadowRoot.querySelector('#title');
-    const bodyInput = this._shadowRoot.querySelector('#body');
+    const titleInput = this._shadowRoot.querySelector("#title");
+    const bodyInput = this._shadowRoot.querySelector("#body");
 
-    titleInput.addEventListener('input', () => this._validateTitle(titleInput));
-    bodyInput.addEventListener('input', () => this._validateBody(bodyInput));
+    titleInput.addEventListener("input", () => this._validateTitle(titleInput));
+    bodyInput.addEventListener("input", () => this._validateBody(bodyInput));
+  }
+
+  _animateFormElements() {
+    // Animasi form yang muncul dari bawah
+    anime({
+      targets: this._shadowRoot.querySelector("form"),
+      translateY: [50, 0], // Form akan bergerak dari bawah ke atas
+      opacity: [0, 1], // Efek muncul secara perlahan
+      duration: 1000,
+      easing: "easeOutQuad",
+    });
+
+    // Animasi elemen input dan button yang muncul satu per satu
+    anime({
+      targets: this._shadowRoot.querySelectorAll("input, textarea, button"),
+      opacity: [0, 1], // Elemen muncul
+      translateX: [-50, 0], // Gerak dari kiri ke kanan
+      delay: anime.stagger(200), // Delay antar elemen
+      duration: 800,
+      easing: "easeOutQuad",
+    });
   }
 
   _handleSubmit(event) {
     event.preventDefault();
 
-    const title = this._shadowRoot.querySelector('#title').value;
-    const body = this._shadowRoot.querySelector('#body').value;
+    const title = this._shadowRoot.querySelector("#title").value;
+    const body = this._shadowRoot.querySelector("#body").value;
 
-    // Validasi akhir sebelum menambah note
     if (this._isValid(title, body)) {
       const newNote = {
         title: title,
         body: body,
       };
 
-      // Cek apakah semua data catatan baru valid
       if (!newNote.title || !newNote.body) {
-        console.error('Invalid note data:', newNote);
+        console.error("Invalid note data:", newNote);
         return;
       }
 
-      // Kirim event note-added ke home.js untuk menambahkan catatan baru
-      this.dispatchEvent(new CustomEvent('note-added', {
-        detail: newNote,
-        bubbles: true,
-        composed: true,
-      }));
+      this.dispatchEvent(
+        new CustomEvent("note-added", {
+          detail: newNote,
+          bubbles: true,
+          composed: true,
+        }),
+      );
 
-      // Mengosongkan input setelah submit
-      this._shadowRoot.querySelector('#title').value = '';
-      this._shadowRoot.querySelector('#body').value = '';
+      this._shadowRoot.querySelector("#title").value = "";
+      this._shadowRoot.querySelector("#body").value = "";
 
-      // Menampilkan SweetAlert2 saat data berhasil disimpan tanpa tombol OK
       Swal.fire({
-        icon: 'success',
-        title: 'Note Added!',
-        text: 'Your note has been successfully added.',
-        showConfirmButton: false,  // Menyembunyikan tombol OK
-        timer: 2000,  // Alert akan hilang setelah 2 detik
+        icon: "success",
+        title: "Note Added!",
+        text: "Your note has been successfully added.",
+        showConfirmButton: false,
+        timer: 2000,
       });
     } else {
-      console.log('Form is invalid.');
+      console.log("Form is invalid.");
     }
   }
 
   _validateTitle(input) {
-    const titleError = this._shadowRoot.querySelector('#titleError');
+    const titleError = this._shadowRoot.querySelector("#titleError");
     const value = input.value;
 
     if (value.length < 3) {
-      titleError.textContent = 'Title must be at least 3 characters';
-      input.classList.add('invalid');
-      input.classList.remove('valid');
+      titleError.textContent = "Title must be at least 3 characters";
+      input.classList.add("invalid");
+      input.classList.remove("valid");
     } else if (/\d/.test(value)) {
-      titleError.textContent = 'Title cannot contain numbers';
-      input.classList.add('invalid');
-      input.classList.remove('valid');
+      titleError.textContent = "Title cannot contain numbers";
+      input.classList.add("invalid");
+      input.classList.remove("valid");
     } else {
-      titleError.textContent = '';
-      input.classList.add('valid');
-      input.classList.remove('invalid');
+      titleError.textContent = "";
+      input.classList.add("valid");
+      input.classList.remove("invalid");
     }
 
     this._toggleSubmitButton();
   }
 
   _validateBody(input) {
-    const bodyError = this._shadowRoot.querySelector('#bodyError');
+    const bodyError = this._shadowRoot.querySelector("#bodyError");
     const value = input.value;
 
     if (value.length < 3) {
-      bodyError.textContent = 'Body must be at least 3 characters';
-      input.classList.add('invalid');
-      input.classList.remove('valid');
+      bodyError.textContent = "Body must be at least 3 characters";
+      input.classList.add("invalid");
+      input.classList.remove("valid");
     } else {
-      bodyError.textContent = '';
-      input.classList.add('valid');
-      input.classList.remove('invalid');
+      bodyError.textContent = "";
+      input.classList.add("valid");
+      input.classList.remove("invalid");
     }
 
     this._toggleSubmitButton();
   }
 
   _toggleSubmitButton() {
-    const titleValid = this._shadowRoot.querySelector('#title').classList.contains('valid');
-    const bodyValid = this._shadowRoot.querySelector('#body').classList.contains('valid');
-    const submitBtn = this._shadowRoot.querySelector('#submitBtn');
+    const titleValid = this._shadowRoot
+      .querySelector("#title")
+      .classList.contains("valid");
+    const bodyValid = this._shadowRoot
+      .querySelector("#body")
+      .classList.contains("valid");
+    const submitBtn = this._shadowRoot.querySelector("#submitBtn");
 
     if (titleValid && bodyValid) {
       submitBtn.disabled = false;
-      submitBtn.classList.remove('submit-disabled');
+      submitBtn.classList.remove("submit-disabled");
     } else {
       submitBtn.disabled = true;
-      submitBtn.classList.add('submit-disabled');
+      submitBtn.classList.add("submit-disabled");
+      this._shakeButton(); // Menambahkan efek getar saat tombol tidak aktif
     }
+  }
+
+  _shakeButton() {
+    // Efek getar pada tombol saat tidak bisa diklik
+    anime({
+      targets: this._shadowRoot.querySelector("#submitBtn"),
+      translateX: [-10, 10, -10, 10, 0], // Gerakan getar kiri kanan
+      duration: 500,
+      easing: "easeInOutQuad",
+    });
   }
 
   _isValid(title, body) {
@@ -258,4 +292,4 @@ class AddForm extends HTMLElement {
   }
 }
 
-customElements.define('add-form', AddForm);
+customElements.define("add-form", AddForm);

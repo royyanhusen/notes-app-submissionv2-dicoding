@@ -1,5 +1,6 @@
-import Swal from 'sweetalert2';
-import NotesApi from '../api/notes-api.js';
+import Swal from "sweetalert2";
+import NotesApi from "../api/notes-api.js";
+import anime from "animejs";
 
 class NoteItem extends HTMLElement {
   _shadowRoot = null;
@@ -14,12 +15,12 @@ class NoteItem extends HTMLElement {
 
   constructor() {
     super();
-    this._shadowRoot = this.attachShadow({ mode: 'open' });
-    this._style = document.createElement('style');
+    this._shadowRoot = this.attachShadow({ mode: "open" });
+    this._style = document.createElement("style");
   }
 
   _emptyContent() {
-    this._shadowRoot.innerHTML = '';
+    this._shadowRoot.innerHTML = "";
   }
 
   set note(value) {
@@ -73,7 +74,7 @@ class NoteItem extends HTMLElement {
       .note-item .status {
         font-weight: bold;
         margin-top: 4px;
-        color: ${this._note.archived ? 'red' : 'green'};
+        color: ${this._note.archived ? "red" : "green"};
       }
 
       .note-item .button-container {
@@ -99,7 +100,7 @@ class NoteItem extends HTMLElement {
       }
 
       .archive-button {
-        background-color: ${this._note.archived ? 'gray' : '#4CAF50'};
+        background-color: ${this._note.archived ? "gray" : "#4CAF50"};
         color: white;
       }
 
@@ -129,7 +130,7 @@ class NoteItem extends HTMLElement {
     this._emptyContent();
     this._updateStyle();
 
-    this._shadowRoot.innerHTML = '';
+    this._shadowRoot.innerHTML = "";
     this._shadowRoot.appendChild(this._style);
 
     this._shadowRoot.innerHTML += `
@@ -138,27 +139,38 @@ class NoteItem extends HTMLElement {
         <p>${this._note.body}</p>
         <small>Created at: ${new Date(this._note.createdAt).toLocaleString()}</small>
 
-        <div class="status">${this._note.archived ? 'Archived' : 'Active'}</div>
+        <div class="status">${this._note.archived ? "Archived" : "Active"}</div>
 
         <div class="button-container">
-          <button class="archive-button">${this._note.archived ? 'Unarchive' : 'Archive'}</button>
+          <button class="archive-button">${this._note.archived ? "Unarchive" : "Archive"}</button>
           <button class="detail-button">Details</button>
           <button class="delete-button">Delete</button>
         </div>
       </div>
     `;
 
-    const archiveButton = this._shadowRoot.querySelector('.archive-button');
-    archiveButton.addEventListener('click', () => this.toggleArchive());
+    const noteItem = this._shadowRoot.querySelector(".note-item");
 
-    const deleteButton = this._shadowRoot.querySelector('.delete-button');
-    deleteButton.addEventListener('click', async (e) => {
+    // Animasi fade in saat catatan muncul
+    anime({
+      targets: noteItem,
+      opacity: [0, 1],
+      translateY: [30, 0],
+      easing: "easeOutQuad",
+      duration: 600,
+    });
+
+    const archiveButton = this._shadowRoot.querySelector(".archive-button");
+    archiveButton.addEventListener("click", () => this.toggleArchive());
+
+    const deleteButton = this._shadowRoot.querySelector(".delete-button");
+    deleteButton.addEventListener("click", async (e) => {
       e.stopPropagation();
       await this.deleteNote();
     });
 
-    const detailButton = this._shadowRoot.querySelector('.detail-button');
-    detailButton.addEventListener('click', () => this.showDetails());
+    const detailButton = this._shadowRoot.querySelector(".detail-button");
+    detailButton.addEventListener("click", () => this.showDetails());
   }
 
   async toggleArchive() {
@@ -175,24 +187,36 @@ class NoteItem extends HTMLElement {
       // Re-render dengan status yang diperbarui
       this.render();
 
+      // Animasi untuk perubahan status
+      const statusElement = this._shadowRoot.querySelector(".status");
+      anime({
+        targets: statusElement,
+        opacity: [0, 1],
+        scale: [0.8, 1],
+        duration: 500,
+        easing: "easeInOutQuad",
+      });
+
       // Menampilkan SweetAlert dalam mode Toast (notifikasi singkat)
       Swal.fire({
-        icon: 'success',
-        title: this._note.archived ? 'Archived' : 'Unarchived',
-        text: this._note.archived ? 'Note has been archived.' : 'Note has been unarchived.',
+        icon: "success",
+        title: this._note.archived ? "Archived" : "Unarchived",
+        text: this._note.archived
+          ? "Note has been archived."
+          : "Note has been unarchived.",
         toast: true,
-        position: 'top-end',  // Menempatkan toast di bagian kanan atas
+        position: "top-end",
         showConfirmButton: false,
         timer: 1500,
       });
     } catch (error) {
-      console.error('Error toggling archive status:', error);
+      console.error("Error toggling archive status:", error);
       Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Error toggling archive status.',
+        icon: "error",
+        title: "Oops...",
+        text: "Error toggling archive status.",
         toast: true,
-        position: 'top-end',
+        position: "top-end",
         showConfirmButton: false,
         timer: 1500,
       });
@@ -202,40 +226,53 @@ class NoteItem extends HTMLElement {
   async deleteNote() {
     try {
       const result = await Swal.fire({
-        title: 'Are you sure?',
+        title: "Are you sure?",
         text: "You won't be able to revert this!",
-        icon: 'warning',
+        icon: "warning",
         showCancelButton: true,
-        confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'No, cancel!',
+        confirmButtonText: "Yes, delete it!",
+        cancelButtonText: "No, cancel!",
         reverseButtons: true,
       });
 
       if (result.isConfirmed) {
         const api = new NotesApi();
         await api.deleteNote(this._note.id); // Call the API to delete the note
-        this.remove();
+
+        const noteItem = this._shadowRoot.querySelector(".note-item");
+
+        // Animasi sebelum menghapus elemen
+        anime({
+          targets: noteItem,
+          opacity: [1, 0],
+          translateX: [0, 100],
+          easing: "easeInOutQuad",
+          duration: 500,
+          complete: () => {
+            this.remove();
+          },
+        });
 
         Swal.fire({
-          title: 'Deleted!',
-          text: 'Your note has been deleted.',
-          icon: 'success',
-          confirmButtonText: 'OK',
+          title: "Deleted!",
+          text: "Your note has been deleted.",
+          icon: "success",
+          confirmButtonText: "OK",
         });
       } else if (result.dismiss === Swal.DismissReason.cancel) {
         Swal.fire({
-          title: 'Cancelled',
-          text: 'Your note is safe :)',
-          icon: 'info',
-          confirmButtonText: 'OK',
+          title: "Cancelled",
+          text: "Your note is safe :)",
+          icon: "info",
+          confirmButtonText: "OK",
         });
       }
     } catch (error) {
-      console.error('Error deleting note:', error);
+      console.error("Error deleting note:", error);
       Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'There was an error deleting your note.',
+        icon: "error",
+        title: "Oops...",
+        text: "There was an error deleting your note.",
         showConfirmButton: true,
       });
     }
@@ -254,26 +291,25 @@ class NoteItem extends HTMLElement {
             <p><strong>Body:</strong></p>
             <p style="white-space: pre-wrap; word-wrap: break-word; font-size: 1em;">${noteDetail.body}</p>
             <p><strong>Created At:</strong> ${new Date(noteDetail.createdAt).toLocaleString()}</p>
-            <p><strong>Status:</strong> ${noteDetail.archived ? 'Archived' : 'Active'}</p>
+            <p><strong>Status:</strong> ${noteDetail.archived ? "Archived" : "Active"}</p>
           </div>
         `,
-        icon: 'info',
-        confirmButtonText: 'OK',
+        icon: "info",
+        confirmButtonText: "OK",
         customClass: {
-          popup: 'swal-popup-details',
+          popup: "swal-popup-details",
         },
       });
     } catch (error) {
-      console.error('Error fetching single note details:', error);
+      console.error("Error fetching single note details:", error);
       Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Error fetching note details.',
+        icon: "error",
+        title: "Oops...",
+        text: "Error fetching note details.",
         showConfirmButton: true,
       });
     }
   }
-
 }
 
-customElements.define('note-item', NoteItem);
+customElements.define("note-item", NoteItem);
